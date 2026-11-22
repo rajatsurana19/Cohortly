@@ -10,6 +10,12 @@ import { apiLimiter } from './middlewares/rateLimiter';
 
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth.routes';
+import academicRoutes from './routes/academic.routes';
+import groupRoutes from './routes/group.routes';
+import assignmentRoutes from './routes/assignment.routes';
+import submissionRoutes from './routes/submission.routes';
+import adminRoutes from './routes/admin.routes';
+import notificationRoutes from './routes/notification.routes';
 
 const app = express();
 
@@ -38,6 +44,12 @@ app.use('/api', apiLimiter);
 // Base Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api', academicRoutes);
+app.use('/api', groupRoutes);
+app.use('/api', assignmentRoutes);
+app.use('/api', submissionRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use('*', (_req, res) => {
@@ -59,9 +71,9 @@ const startServer = async () => {
 
   app.listen(env.PORT, () => {
     console.log(`===============================================`);
-    console.log(`🚀 Cohortly API Server running on port ${env.PORT}`);
-    console.log(`📍 Environment: ${env.NODE_ENV}`);
-    console.log(`🔗 Health Check: http://localhost:${env.PORT}/api/health`);
+    console.log(`Cohortly API Server running on port ${env.PORT}`);
+    console.log(`Environment: ${env.NODE_ENV}`);
+    console.log(`Health Check: http://localhost:${env.PORT}/api/health`);
     console.log(`===============================================`);
   });
 };

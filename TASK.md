@@ -97,16 +97,16 @@ Tasks should be completed in order unless a dependency requires otherwise. Updat
 
 ### Courses and classrooms
 
-- [ ] Implement academic year management.
-- [ ] Implement course creation and management.
-- [ ] Implement classroom creation.
-- [ ] Implement classroom editing and archiving.
-- [ ] Implement professor assignment.
-- [ ] Implement student enrollment.
-- [ ] Implement classroom join code or invitation flow.
-- [ ] Implement student classroom listing.
-- [ ] Implement professor classroom listing.
-- [ ] Implement enrollment removal and history.
+- [x] Implement academic year management.
+- [x] Implement course creation and management.
+- [x] Implement classroom creation.
+- [x] Implement classroom editing and archiving.
+- [x] Implement professor assignment.
+- [x] Implement student enrollment.
+- [x] Implement classroom join code or invitation flow.
+- [x] Implement student classroom listing.
+- [x] Implement professor classroom listing.
+- [x] Implement enrollment removal and history.
 
 **Acceptance criteria:**
 
@@ -120,36 +120,36 @@ Tasks should be completed in order unless a dependency requires otherwise. Updat
 
 ### Group creation
 
-- [ ] Implement group creation endpoint.
-- [ ] Validate student classroom enrollment.
-- [ ] Automatically add creator as first member.
-- [ ] Automatically assign creator as initial leader.
-- [ ] Enforce one group creation per student per class.
-- [ ] Prevent duplicate creation under concurrent requests.
-- [ ] Implement group listing and details.
-- [ ] Implement group archival and disbanding.
+- [x] Implement group creation endpoint.
+- [x] Validate student classroom enrollment.
+- [x] Automatically add creator as first member.
+- [x] Automatically assign creator as initial leader.
+- [x] Enforce one group creation per student per class.
+- [x] Prevent duplicate creation under concurrent requests.
+- [x] Implement group listing and details.
+- [x] Implement group archival and disbanding.
 
 ### Group invitations
 
-- [ ] Implement invitation creation.
-- [ ] Implement invitation listing.
-- [ ] Implement invitation acceptance.
-- [ ] Implement invitation rejection.
-- [ ] Implement invitation cancellation.
-- [ ] Implement invitation expiration.
-- [ ] Prevent duplicate pending invitations.
-- [ ] Validate eligibility during acceptance.
+- [x] Implement invitation creation.
+- [x] Implement invitation listing.
+- [x] Implement invitation acceptance.
+- [x] Implement invitation rejection.
+- [x] Implement invitation cancellation.
+- [x] Implement invitation expiration.
+- [x] Prevent duplicate pending invitations.
+- [x] Validate eligibility during acceptance.
 
 ### Membership and leadership
 
-- [ ] Enforce one active group membership per student per class.
-- [ ] Implement group member listing.
-- [ ] Implement group member departure.
-- [ ] Implement membership history.
-- [ ] Implement leadership transfer.
-- [ ] Implement professor membership intervention.
-- [ ] Implement professor leadership intervention.
-- [ ] Record all interventions in audit logs.
+- [x] Enforce one active group membership per student per class.
+- [x] Implement group member listing.
+- [x] Implement group member departure.
+- [x] Implement membership history.
+- [x] Implement leadership transfer.
+- [x] Implement professor membership intervention.
+- [x] Implement professor leadership intervention.
+- [x] Record all interventions in audit logs.
 
 **Acceptance criteria:**
 
@@ -165,18 +165,18 @@ Tasks should be completed in order unless a dependency requires otherwise. Updat
 
 ### Assignment operations
 
-- [ ] Implement assignment creation.
-- [ ] Implement assignment editing.
-- [ ] Implement assignment deletion or archival rules.
-- [ ] Implement draft status.
-- [ ] Implement assignment publication.
-- [ ] Implement assignment closing.
-- [ ] Implement due date validation.
-- [ ] Implement all-groups targeting.
-- [ ] Implement selected-groups targeting.
-- [ ] Snapshot targeted groups during publication.
-- [ ] Implement assignment listing and detail views.
-- [ ] Implement assignment notifications.
+- [x] Implement assignment creation.
+- [x] Implement assignment editing.
+- [x] Implement assignment deletion or archival rules.
+- [x] Implement draft status.
+- [x] Implement assignment publication.
+- [x] Implement assignment closing.
+- [x] Implement due date validation.
+- [x] Implement all-groups targeting.
+- [x] Implement selected-groups targeting.
+- [x] Snapshot targeted groups during publication.
+- [x] Implement assignment listing and detail views.
+- [x] Implement assignment notifications.
 
 **Acceptance criteria:**
 
@@ -189,18 +189,18 @@ Tasks should be completed in order unless a dependency requires otherwise. Updat
 
 ### Submission management
 
-- [ ] Implement group submission record creation.
-- [ ] Validate assignment and group eligibility.
-- [ ] Record submitting user and timestamp.
-- [ ] Snapshot eligible group members.
-- [ ] Create individual pending confirmation records.
-- [ ] Implement individual confirmation endpoint.
-- [ ] Implement professor waiver endpoint.
-- [ ] Require a reason for waivers.
-- [ ] Implement group submission progress.
-- [ ] Implement member-level confirmation status.
-- [ ] Implement submission notifications.
-- [ ] Record submission actions in audit logs.
+- [x] Implement group submission record creation.
+- [x] Validate assignment and group eligibility.
+- [x] Record submitting user and timestamp.
+- [x] Snapshot eligible group members.
+- [x] Create individual pending confirmation records.
+- [x] Implement individual confirmation endpoint.
+- [x] Implement professor waiver endpoint.
+- [x] Require a reason for waivers.
+- [x] Implement group submission progress.
+- [x] Implement member-level confirmation status.
+- [x] Implement submission notifications.
+- [x] Record submission actions in audit logs.
 
 **Acceptance criteria:**
 
@@ -214,26 +214,26 @@ Tasks should be completed in order unless a dependency requires otherwise. Updat
 
 ### Notifications
 
-- [ ] Create notification service.
-- [ ] Implement notification listing.
-- [ ] Implement mark-as-read operation.
-- [ ] Implement unread notification count.
-- [ ] Notify students about invitations.
-- [ ] Notify students about assignments.
-- [ ] Notify students about submission confirmations.
-- [ ] Notify professors about relevant classroom activity.
+- [x] Create notification service.
+- [x] Implement notification listing.
+- [x] Implement mark-as-read operation.
+- [x] Implement unread notification count.
+- [x] Notify students about invitations.
+- [x] Notify students about assignments.
+- [x] Notify students about submission confirmations.
+- [x] Notify professors about relevant classroom activity.
 
 ### Audit
 
-- [ ] Implement audit logging service.
-- [ ] Log group creation and disbanding.
-- [ ] Log invitation decisions.
-- [ ] Log membership changes.
-- [ ] Log leadership changes.
-- [ ] Log professor interventions.
-- [ ] Log assignment publication and targeting changes.
-- [ ] Log confirmation and waiver actions.
-- [ ] Implement authorized audit log viewing.
+- [x] Implement audit logging service.
+- [x] Log group creation and disbanding.
+- [x] Log invitation decisions.
+- [x] Log membership changes.
+- [x] Log leadership changes.
+- [x] Log professor interventions.
+- [x] Log assignment publication and targeting changes.
+- [x] Log confirmation and waiver actions.
+- [x] Implement authorized audit log viewing.
 
 **Acceptance criteria:**
 
@@ -245,52 +245,52 @@ Tasks should be completed in order unless a dependency requires otherwise. Updat
 
 ### Shared interface
 
-- [ ] Implement application layout.
-- [ ] Implement responsive navigation.
-- [ ] Implement reusable buttons, inputs, tables, dialogs, and status indicators.
-- [ ] Implement loading states.
-- [ ] Implement empty states.
-- [ ] Implement error states.
-- [ ] Implement form validation.
-- [ ] Implement accessible interactions.
+- [x] Implement application layout.
+- [x] Implement responsive navigation.
+- [x] Implement reusable buttons, inputs, tables, dialogs, and status indicators.
+- [x] Implement loading states.
+- [x] Implement empty states.
+- [x] Implement error states.
+- [x] Implement form validation.
+- [x] Implement accessible interactions.
 
 ### Student interface
 
-- [ ] Registration and login.
-- [ ] Student dashboard.
-- [ ] My Classes.
-- [ ] Class overview.
-- [ ] Group listing.
-- [ ] Group creation.
-- [ ] Group details.
-- [ ] Invitation management.
-- [ ] Assignment listing and details.
-- [ ] Individual confirmation.
-- [ ] Notifications and profile.
+- [x] Registration and login.
+- [x] Student dashboard.
+- [x] My Classes.
+- [x] Class overview.
+- [x] Group listing.
+- [x] Group creation.
+- [x] Group details.
+- [x] Invitation management.
+- [x] Assignment listing and details.
+- [x] Individual confirmation.
+- [x] Notifications and profile.
 
 ### Professor interface
 
-- [ ] Professor dashboard.
-- [ ] Managed classrooms.
-- [ ] Classroom overview.
-- [ ] Student management.
-- [ ] Group management.
-- [ ] Assignment creation and editing.
-- [ ] Assignment targeting.
-- [ ] Submission tracking.
-- [ ] Individual confirmation overview.
-- [ ] Professor intervention controls.
-- [ ] Classroom activity.
+- [x] Professor dashboard.
+- [x] Managed classrooms.
+- [x] Classroom overview.
+- [x] Student management.
+- [x] Group management.
+- [x] Assignment creation and editing.
+- [x] Assignment targeting.
+- [x] Submission tracking.
+- [x] Individual confirmation overview.
+- [x] Professor intervention controls.
+- [x] Classroom activity.
 
 ### Administrator interface
 
-- [ ] Administrator dashboard.
-- [ ] User management.
-- [ ] Professor provisioning.
-- [ ] Course management.
-- [ ] Classroom oversight.
-- [ ] Account status management.
-- [ ] Audit log viewer.
+- [x] Administrator dashboard.
+- [x] User management.
+- [x] Professor provisioning.
+- [x] Course management.
+- [x] Classroom oversight.
+- [x] Account status management.
+- [x] Audit log viewer.
 
 **Acceptance criteria:**
 
@@ -303,37 +303,37 @@ Tasks should be completed in order unless a dependency requires otherwise. Updat
 
 ### Functional tests
 
-- [ ] Test student registration.
-- [ ] Test professor provisioning.
-- [ ] Test classroom enrollment.
-- [ ] Test group creation.
-- [ ] Test invitation acceptance and rejection.
-- [ ] Test membership restrictions.
-- [ ] Test leadership transfer.
-- [ ] Test assignment targeting.
-- [ ] Test submission creation.
-- [ ] Test individual confirmations.
-- [ ] Test professor intervention.
-- [ ] Test administrator permissions.
+- [x] Test student registration.
+- [x] Test professor provisioning.
+- [x] Test classroom enrollment.
+- [x] Test group creation.
+- [x] Test invitation acceptance and rejection.
+- [x] Test membership restrictions.
+- [x] Test leadership transfer.
+- [x] Test assignment targeting.
+- [x] Test submission creation.
+- [x] Test individual confirmations.
+- [x] Test professor intervention.
+- [x] Test administrator permissions.
 
 ### Security tests
 
-- [ ] Test unauthorized classroom access.
-- [ ] Test role escalation attempts.
-- [ ] Test invitation ownership.
-- [ ] Test confirmation ownership.
-- [ ] Test SQL injection protections.
-- [ ] Test authentication rate limits.
-- [ ] Test session revocation.
-- [ ] Test input validation.
+- [x] Test unauthorized classroom access.
+- [x] Test role escalation attempts.
+- [x] Test invitation ownership.
+- [x] Test confirmation ownership.
+- [x] Test SQL injection protections.
+- [x] Test authentication rate limits.
+- [x] Test session revocation.
+- [x] Test input validation.
 
 ### Concurrency tests
 
-- [ ] Test simultaneous group creation by one student.
-- [ ] Test simultaneous invitation acceptance into different groups in one class.
-- [ ] Test group capacity under concurrent acceptance.
-- [ ] Test concurrent leadership changes.
-- [ ] Test duplicate submission requests.
+- [x] Test simultaneous group creation by one student.
+- [x] Test simultaneous invitation acceptance into different groups in one class.
+- [x] Test group capacity under concurrent acceptance.
+- [x] Test concurrent leadership changes.
+- [x] Test duplicate submission requests.
 
 **Acceptance criteria:**
 
