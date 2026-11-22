@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  STUDENT
+  PROFESSOR
+  PLATFORM_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AcademicYearStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ClassStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  REMOVED
+}
+
+enum GroupStatus {
+  ACTIVE
+  DISBANDED
+  ARCHIVED
+}
+
+enum MembershipRole {
+  LEADER
+  MEMBER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum TargetMode {
+  ALL_GROUPS
+  SELECTED_GROUPS
+}
+
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum ConfirmationStatus {
+  PENDING
+  CONFIRMED
+  WAIVED
+}
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  full_name     String     @db.VarChar(150)
+  email         String     @unique @db.VarChar(255)
+  password_hash String
+  role          UserRole   @default(STUDENT)
+  status        UserStatus @default(ACTIVE)
+  created_at    DateTime   @default(now()) @db.Timestamptz()
+  updated_at    DateTime   @updatedAt @db.Timestamptz()
+
+  sessions             UserSession[]
+  professorships       ClassProfessor[]     @relation("ProfessorClasses")
+  assigned_professors  ClassProfessor[]     @relation("AssignedBy")
+  enrollments          ClassEnrollment[]
+  created_groups       StudentGroup[]       @relation("CreatedGroups")
+  group_memberships    GroupMembership[]
+  sent_invitations     GroupInvitation[]    @relation("SentInvitations")
+  received_invitations GroupInvitation[]    @relation("ReceivedInvitations")
+  created_assignments  Assignment[]         @relation("CreatedAssignments")
+  submissions          GroupSubmission[]    @relation("Submissions")
+  confirmations        MemberConfirmation[] @relation("StudentConfirmations")
+  waived_confirmations MemberConfirmation[] @relation("WaivedBy")
+  notifications        Notification[]
+  audit_logs           AuditLog[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id                 String    @id @default(uuid()) @db.Uuid
+  user_id            String    @db.Uuid
+  refresh_token_hash String    @unique
+  expires_at         DateTime  @db.Timestamptz()
+  revoked_at         DateTime? @db.Timestamptz()
+  created_at         DateTime  @default(now()) @db.Timestamptz()
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model AcademicYear {
+  id         String             @id @default(uuid()) @db.Uuid
+  name       String             @db.VarChar(30)
+  start_date DateTime           @db.Date
+  end_date   DateTime           @db.Date
+  status     AcademicYearStatus @default(ACTIVE)
+
+  classes Class[]
+
+  @@map("academic_years")
+}
+
+model Course {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(150)
+  code        String   @unique @db.VarChar(50)
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz()
+
+  classes Class[]
+
+  @@map("courses")
+}
+
+model Class {
+  id               String      @id @default(uuid()) @db.Uuid
+  course_id        String      @db.Uuid
+  academic_year_id String      @db.Uuid
+  name             String      @db.VarChar(150)
+  section          String?     @db.VarChar(50)
+  join_code        String      @unique @db.VarChar(32)
+  status           ClassStatus @default(ACTIVE)
+  created_at       DateTime    @default(now()) @db.Timestamptz()
+  updated_at       DateTime    @updatedAt @db.Timestamptz()
+
+  course        Course            @relation(fields: [course_id], references: [id], onDelete: Restrict)
+  academic_year AcademicYear      @relation(fields: [academic_year_id], references: [id], onDelete: Restrict)
+  professors    ClassProfessor[]
+  enrollments   ClassEnrollment[]
+  groups        StudentGroup[]
+  assignments   Assignment[]
+
+  @@map("classes")
+}
+
+model ClassProfessor {
+  id           String   @id @default(uuid()) @db.Uuid
+  class_id     String   @db.Uuid
+  professor_id String   @db.Uuid
+  assigned_at  DateTime @default(now()) @db.Timestamptz()
+  assigned_by  String   @db.Uuid
+
+  class     Class @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  professor User  @relation("ProfessorClasses", fields: [professor_id], references: [id], onDelete: Cascade)
+  assigner  User  @relation("AssignedBy", fields: [assigned_by], references: [id], onDelete: Cascade)
+
+  @@unique([class_id, professor_id], name: "uq_class_professor")
+  @@map("class_professors")
+}
+
+model ClassEnrollment {
+  id          String           @id @default(uuid()) @db.Uuid
+  class_id    String           @db.Uuid
+  student_id  String           @db.Uuid
+  status      EnrollmentStatus @default(ACTIVE)
+  enrolled_at DateTime         @default(now()) @db.Timestamptz()
+  removed_at  DateTime?        @db.Timestamptz()
+
+  class   Class @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  student User  @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@map("class_enrollments")
+}
+
+model StudentGroup {
+  id          String      @id @default(uuid()) @db.Uuid
+  class_id    String      @db.Uuid
+  name        String      @db.VarChar(100)
+  description String?
+  created_by  String      @db.Uuid
+  status      GroupStatus @default(ACTIVE)
+  max_members Int?
+  created_at  DateTime    @default(now()) @db.Timestamptz()
+  updated_at  DateTime    @updatedAt @db.Timestamptz()
+
+  class             Class              @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  creator           User               @relation("CreatedGroups", fields: [created_by], references: [id], onDelete: Restrict)
+  memberships       GroupMembership[]
+  invitations       GroupInvitation[]
+  assignment_groups AssignmentGroup[]
+  submissions       GroupSubmission[]
+
+  // Critical rule 1: One group creation per student per class permanently
+  @@unique([class_id, created_by], name: "uq_group_creator_per_class")
+  @@unique([id, class_id], name: "uq_group_id_class")
+  @@map("student_groups")
+}
+
+model GroupMembership {
+  id              String         @id @default(uuid()) @db.Uuid
+  group_id        String         @db.Uuid
+  class_id        String         @db.Uuid
+  student_id      String         @db.Uuid
+  membership_role MembershipRole @default(MEMBER)
+  joined_at       DateTime       @default(now()) @db.Timestamptz()
+  left_at         DateTime?      @db.Timestamptz()
+  left_reason     String?
+
+  group   StudentGroup @relation(fields: [group_id, class_id], references: [id, class_id], onDelete: Cascade)
+  student User         @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@index([student_id, class_id])
+  @@index([group_id])
+  @@map("group_memberships")
+}
+
+model GroupInvitation {
+  id                 String           @id @default(uuid()) @db.Uuid
+  group_id           String           @db.Uuid
+  invited_student_id String           @db.Uuid
+  invited_by         String           @db.Uuid
+  status             InvitationStatus @default(PENDING)
+  created_at         DateTime         @default(now()) @db.Timestamptz()
+  responded_at       DateTime?        @db.Timestamptz()
+  expires_at         DateTime?        @db.Timestamptz()
+
+  group           StudentGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  invited_student User         @relation("ReceivedInvitations", fields: [invited_student_id], references: [id], onDelete: Cascade)
+  inviter         User         @relation("SentInvitations", fields: [invited_by], references: [id], onDelete: Cascade)
+
+  @@index([group_id, invited_student_id, status])
+  @@map("group_invitations")
+}
+
+model Assignment {
+  id           String           @id @default(uuid()) @db.Uuid
+  class_id     String           @db.Uuid
+  created_by   String           @db.Uuid
+  title        String           @db.VarChar(200)
+  description  String?
+  instructions String?
+  target_mode  TargetMode       @default(ALL_GROUPS)
+  status       AssignmentStatus @default(DRAFT)
+  published_at DateTime?        @db.Timestamptz()
+  due_at       DateTime?        @db.Timestamptz()
+  created_at   DateTime         @default(now()) @db.Timestamptz()
+  updated_at   DateTime         @updatedAt @db.Timestamptz()
+
+  class             Class             @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  creator           User              @relation("CreatedAssignments", fields: [created_by], references: [id], onDelete: Restrict)
+  assignment_groups AssignmentGroup[]
+  submissions       GroupSubmission[]
+
+  @@map("assignments")
+}
+
+model AssignmentGroup {
+  id            String   @id @default(uuid()) @db.Uuid
+  assignment_id String   @db.Uuid
+  group_id      String   @db.Uuid
+  targeted_at   DateTime @default(now()) @db.Timestamptz()
+
+  assignment Assignment   @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  group      StudentGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
+
+  @@unique([assignment_id, group_id], name: "uq_assignment_group")
+  @@map("assignment_groups")
+}
+
+model GroupSubmission {
+  id                   String   @id @default(uuid()) @db.Uuid
+  assignment_id        String   @db.Uuid
+  group_id             String   @db.Uuid
+  submitted_by         String   @db.Uuid
+  submitted_at         DateTime @default(now()) @db.Timestamptz()
+  submission_reference String?
+  notes                String?
+
+  assignment    Assignment           @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  group         StudentGroup         @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  submitter     User                 @relation("Submissions", fields: [submitted_by], references: [id], onDelete: Restrict)
+  confirmations MemberConfirmation[]
+
+  @@unique([assignment_id, group_id], name: "uq_assignment_group_submission")
+  @@map("group_submissions")
+}
+
+model MemberConfirmation {
+  id                  String             @id @default(uuid()) @db.Uuid
+  group_submission_id String             @db.Uuid
+  student_id          String             @db.Uuid
+  status              ConfirmationStatus @default(PENDING)
+  confirmed_at        DateTime?          @db.Timestamptz()
+  waived_by           String?            @db.Uuid
+  waiver_reason       String?
+  created_at          DateTime           @default(now()) @db.Timestamptz()
+
+  submission GroupSubmission @relation(fields: [group_submission_id], references: [id], onDelete: Cascade)
+  student    User            @relation("StudentConfirmations", fields: [student_id], references: [id], onDelete: Cascade)
+  waiver     User?           @relation("WaivedBy", fields: [waived_by], references: [id], onDelete: SetNull)
+
+  @@unique([group_submission_id, student_id], name: "uq_submission_member_confirmation")
+  @@map("member_confirmations")
+}
+
+model Notification {
+  id             String    @id @default(uuid()) @db.Uuid
+  user_id        String    @db.Uuid
+  type           String    @db.VarChar(60)
+  title          String    @db.VarChar(200)
+  message        String
+  reference_type String?   @db.VarChar(60)
+  reference_id   String?   @db.Uuid
+  read_at        DateTime? @db.Timestamptz()
+  created_at     DateTime  @default(now()) @db.Timestamptz()
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actor_id    String   @db.Uuid
+  action      String   @db.VarChar(100)
+  entity_type String   @db.VarChar(80)
+  entity_id   String   @db.Uuid
+  reason      String?
+  old_values  Json?
+  new_values  Json?
+  created_at  DateTime @default(now()) @db.Timestamptz()
+
+  actor User @relation(fields: [actor_id], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
