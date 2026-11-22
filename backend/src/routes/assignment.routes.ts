@@ -8,21 +8,23 @@ import { createNotification } from '../services/notificationService';
 
 const router = Router();
 
+const uuidSchema = z.string().uuid('Invalid UUID format');
+
 const createAssignmentSchema = z.object({
-  title: z.string().min(3).max(200),
-  description: z.string().optional(),
-  instructions: z.string().optional(),
+  title: z.string().min(3, 'Assignment title must be at least 3 characters').max(200),
+  description: z.string().max(2000).optional(),
+  instructions: z.string().max(5000).optional(),
   targetMode: z.enum(['ALL_GROUPS', 'SELECTED_GROUPS']).default('ALL_GROUPS'),
-  selectedGroupIds: z.array(z.string().uuid()).optional().default([]),
+  selectedGroupIds: z.array(z.string().uuid('Invalid group UUID format')).optional().default([]),
   dueAt: z.string().datetime().optional().nullable(),
 });
 
 const updateAssignmentSchema = z.object({
-  title: z.string().min(3).max(200).optional(),
-  description: z.string().optional(),
-  instructions: z.string().optional(),
+  title: z.string().min(3, 'Assignment title must be at least 3 characters').max(200).optional(),
+  description: z.string().max(2000).optional(),
+  instructions: z.string().max(5000).optional(),
   targetMode: z.enum(['ALL_GROUPS', 'SELECTED_GROUPS']).optional(),
-  selectedGroupIds: z.array(z.string().uuid()).optional(),
+  selectedGroupIds: z.array(z.string().uuid('Invalid group UUID format')).optional(),
   dueAt: z.string().datetime().optional().nullable(),
 });
 
@@ -32,7 +34,7 @@ const updateAssignmentSchema = z.object({
  */
 router.get('/classes/:classId/assignments', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const classId = req.params.classId as string;
+    const classId = uuidSchema.parse(req.params.classId);
     const user = req.user!;
 
     const isProfOrAdmin = user.role === 'PROFESSOR' || user.role === 'PLATFORM_ADMIN';
@@ -76,7 +78,7 @@ router.get('/classes/:classId/assignments', authenticate, async (req: Request, r
  */
 router.post('/classes/:classId/assignments', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const classId = req.params.classId as string;
+    const classId = uuidSchema.parse(req.params.classId);
     const user = req.user!;
 
     if (user.role !== 'PROFESSOR' && user.role !== 'PLATFORM_ADMIN') {
@@ -129,7 +131,7 @@ router.post('/classes/:classId/assignments', authenticate, async (req: Request, 
  */
 router.get('/assignments/:assignmentId', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const assignmentId = req.params.assignmentId as string;
+    const assignmentId = uuidSchema.parse(req.params.assignmentId);
 
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
@@ -193,7 +195,7 @@ router.get('/assignments/:assignmentId', authenticate, async (req: Request, res:
  */
 router.patch('/assignments/:assignmentId', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const assignmentId = req.params.assignmentId as string;
+    const assignmentId = uuidSchema.parse(req.params.assignmentId);
     const user = req.user!;
     const validated = updateAssignmentSchema.parse(req.body);
 
@@ -247,7 +249,7 @@ router.patch('/assignments/:assignmentId', authenticate, async (req: Request, re
  */
 router.post('/assignments/:assignmentId/publish', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const assignmentId = req.params.assignmentId as string;
+    const assignmentId = uuidSchema.parse(req.params.assignmentId);
     const user = req.user!;
 
     if (user.role !== 'PROFESSOR' && user.role !== 'PLATFORM_ADMIN') {
@@ -335,7 +337,7 @@ router.post('/assignments/:assignmentId/publish', authenticate, async (req: Requ
  */
 router.post('/assignments/:assignmentId/close', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const assignmentId = req.params.assignmentId as string;
+    const assignmentId = uuidSchema.parse(req.params.assignmentId);
     const user = req.user!;
 
     if (user.role !== 'PROFESSOR' && user.role !== 'PLATFORM_ADMIN') {

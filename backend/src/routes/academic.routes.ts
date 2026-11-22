@@ -8,22 +8,28 @@ import { recordAuditLog } from '../services/auditService';
 
 const router = Router();
 
+const uuidSchema = z.string().uuid('Invalid UUID format');
+
 // Validation schemas
 const createCourseSchema = z.object({
-  name: z.string().min(2).max(150),
-  code: z.string().min(2).max(50),
-  description: z.string().optional(),
+  name: z.string().min(2, 'Course name must be at least 2 characters').max(150),
+  code: z.string().min(2, 'Course code must be at least 2 characters').max(50),
+  description: z.string().max(1000).optional(),
 });
 
 const createClassSchema = z.object({
-  courseId: z.string().uuid(),
-  academicYearId: z.string().uuid(),
-  name: z.string().min(2).max(150),
+  courseId: z.string().uuid('Invalid Course UUID'),
+  academicYearId: z.string().uuid('Invalid Academic Year UUID'),
+  name: z.string().min(2, 'Classroom name must be at least 2 characters').max(150),
   section: z.string().max(50).optional(),
 });
 
 const joinClassSchema = z.object({
-  joinCode: z.string().min(4).max(32),
+  joinCode: z.string().min(4, 'Join code must be at least 4 characters').max(32),
+});
+
+const assignProfessorSchema = z.object({
+  professorId: z.string().uuid('Invalid Professor UUID'),
 });
 
 /**
@@ -256,7 +262,7 @@ router.post(
  */
 router.get('/classes/:classId', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const classId = req.params.classId as string;
+    const classId = uuidSchema.parse(req.params.classId);
     const user = req.user!;
 
     if (user.role === 'STUDENT') {
@@ -387,13 +393,9 @@ router.post(
   authorizeRoles('PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const classId = req.params.classId as string;
-      const { professorId } = req.body;
-
-      if (!professorId) {
-        sendError(res, 'Professor ID is required', 400, 'PROFESSOR_ID_REQUIRED');
-        return;
-      }
+      const classId = uuidSchema.parse(req.params.classId);
+      const validated = assignProfessorSchema.parse(req.body);
+      const professorId = validated.professorId;
 
       const prof = await prisma.user.findFirst({
         where: { id: professorId, role: 'PROFESSOR' },
@@ -444,8 +446,8 @@ router.delete(
   authorizeRoles('PROFESSOR', 'PLATFORM_ADMIN'),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const classId = req.params.classId as string;
-      const studentId = req.params.studentId as string;
+      const classId = uuidSchema.parse(req.params.classId);
+      const studentId = uuidSchema.parse(req.params.studentId);
 
       const enrollment = await prisma.classEnrollment.findFirst({
         where: { class_id: classId, student_id: studentId, status: 'ACTIVE' },

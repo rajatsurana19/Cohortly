@@ -8,6 +8,8 @@ import { createNotification } from '../services/notificationService';
 
 const router = Router();
 
+const uuidSchema = z.string().uuid('Invalid UUID format');
+
 const createGroupSchema = z.object({
   name: z.string().min(2, 'Group name must be at least 2 characters').max(100),
   description: z.string().max(500).optional(),
@@ -15,17 +17,21 @@ const createGroupSchema = z.object({
 });
 
 const inviteStudentSchema = z.object({
-  studentEmail: z.string().email(),
+  studentEmail: z.string().email('Invalid email address format'),
 });
 
 const transferLeadershipSchema = z.object({
-  newLeaderId: z.string().uuid(),
+  newLeaderId: z.string().uuid('Invalid new leader UUID format'),
+});
+
+const leaveGroupSchema = z.object({
+  reason: z.string().max(255).optional(),
 });
 
 const professorInterventionSchema = z.object({
   action: z.enum(['CHANGE_LEADER', 'REMOVE_MEMBER', 'DISBAND_GROUP']),
-  targetMemberId: z.string().uuid().optional(),
-  reason: z.string().min(5, 'A clear reason is required for professor intervention'),
+  targetMemberId: z.string().uuid('Invalid target member UUID format').optional(),
+  reason: z.string().min(5, 'A clear reason is required for professor intervention').max(500),
 });
 
 /**
@@ -34,7 +40,7 @@ const professorInterventionSchema = z.object({
  */
 router.get('/classes/:classId/groups', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const classId = req.params.classId as string;
+    const classId = uuidSchema.parse(req.params.classId);
     const user = req.user!;
 
     if (user.role === 'STUDENT') {
@@ -103,7 +109,7 @@ router.get('/classes/:classId/groups', authenticate, async (req: Request, res: R
  */
 router.post('/classes/:classId/groups', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const classId = req.params.classId as string;
+    const classId = uuidSchema.parse(req.params.classId);
     const user = req.user!;
 
     if (user.role !== 'STUDENT') {
@@ -217,7 +223,7 @@ router.post('/classes/:classId/groups', authenticate, async (req: Request, res: 
  */
 router.get('/groups/:groupId', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const groupId = req.params.groupId as string;
+    const groupId = uuidSchema.parse(req.params.groupId);
 
     const group = await prisma.studentGroup.findUnique({
       where: { id: groupId },
@@ -276,7 +282,7 @@ router.get('/groups/:groupId', authenticate, async (req: Request, res: Response,
  */
 router.post('/groups/:groupId/invitations', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const groupId = req.params.groupId as string;
+    const groupId = uuidSchema.parse(req.params.groupId);
     const user = req.user!;
     const validated = inviteStudentSchema.parse(req.body);
     const targetEmail = validated.studentEmail.trim().toLowerCase();
@@ -427,7 +433,7 @@ router.get('/invitations/my', authenticate, async (req: Request, res: Response, 
  */
 router.post('/invitations/:invitationId/accept', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const invitationId = req.params.invitationId as string;
+    const invitationId = uuidSchema.parse(req.params.invitationId);
     const user = req.user!;
 
     const invitation = await prisma.groupInvitation.findUnique({
@@ -533,7 +539,7 @@ router.post('/invitations/:invitationId/accept', authenticate, async (req: Reque
  */
 router.post('/invitations/:invitationId/reject', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const invitationId = req.params.invitationId as string;
+    const invitationId = uuidSchema.parse(req.params.invitationId);
     const user = req.user!;
 
     const invitation = await prisma.groupInvitation.findUnique({
@@ -577,7 +583,7 @@ router.post('/invitations/:invitationId/reject', authenticate, async (req: Reque
  */
 router.post('/groups/:groupId/leadership-transfer', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const groupId = req.params.groupId as string;
+    const groupId = uuidSchema.parse(req.params.groupId);
     const user = req.user!;
     const validated = transferLeadershipSchema.parse(req.body);
 
@@ -650,9 +656,10 @@ router.post('/groups/:groupId/leadership-transfer', authenticate, async (req: Re
  */
 router.post('/groups/:groupId/leave', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const groupId = req.params.groupId as string;
+    const groupId = uuidSchema.parse(req.params.groupId);
     const user = req.user!;
-    const { reason } = req.body;
+    const validated = leaveGroupSchema.parse(req.body);
+    const reason = validated.reason;
 
     const group = await prisma.studentGroup.findUnique({
       where: { id: groupId },
@@ -719,7 +726,7 @@ router.post('/groups/:groupId/leave', authenticate, async (req: Request, res: Re
  */
 router.post('/groups/:groupId/intervene', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const groupId = req.params.groupId as string;
+    const groupId = uuidSchema.parse(req.params.groupId);
     const user = req.user!;
 
     if (user.role !== 'PROFESSOR' && user.role !== 'PLATFORM_ADMIN') {

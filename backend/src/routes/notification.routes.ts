@@ -1,9 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import { prisma } from '../config/db';
 import { sendSuccess, sendError } from '../utils/response';
 import { authenticate } from '../middlewares/auth';
 
 const router = Router();
+
+const uuidSchema = z.string().uuid('Invalid UUID format');
 
 router.use(authenticate);
 
@@ -38,7 +41,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction): Promise
  */
 router.post('/:notificationId/read', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const notificationId = req.params.notificationId as string;
+    const notificationId = uuidSchema.parse(req.params.notificationId);
     const user = req.user!;
 
     const notification = await prisma.notification.findUnique({

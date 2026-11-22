@@ -8,15 +8,17 @@ import { recordAuditLog } from '../services/auditService';
 
 const router = Router();
 
+const uuidSchema = z.string().uuid('Invalid user UUID format');
+
 const provisionProfessorSchema = z.object({
-  fullName: z.string().min(2).max(150),
-  email: z.string().email(),
-  password: z.string().min(8),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(150),
+  email: z.string().email('Invalid email address format'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 const updateUserStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']),
-  reason: z.string().min(3).optional(),
+  reason: z.string().min(3, 'Reason must be at least 3 characters').max(500).optional(),
 });
 
 router.use(authenticate, authorizeRoles('PLATFORM_ADMIN'));
@@ -136,7 +138,7 @@ router.post('/professors', async (req: Request, res: Response, next: NextFunctio
  */
 router.patch('/users/:userId/status', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = req.params.userId as string;
+    const userId = uuidSchema.parse(req.params.userId);
     const validated = updateUserStatusSchema.parse(req.body);
 
     const user = await prisma.user.findUnique({

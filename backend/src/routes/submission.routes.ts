@@ -8,13 +8,15 @@ import { createNotification } from '../services/notificationService';
 
 const router = Router();
 
+const uuidSchema = z.string().uuid('Invalid UUID format');
+
 const createSubmissionSchema = z.object({
-  submissionReference: z.string().optional(),
-  notes: z.string().max(1000).optional(),
+  submissionReference: z.string().max(500, 'Submission reference cannot exceed 500 characters').optional().nullable(),
+  notes: z.string().max(1000, 'Notes cannot exceed 1000 characters').optional().nullable(),
 });
 
 const waiveConfirmationSchema = z.object({
-  reason: z.string().min(5, 'A clear reason is required for confirmation waiver'),
+  reason: z.string().min(5, 'A clear reason of at least 5 characters is required for confirmation waiver').max(500),
 });
 
 /**
@@ -26,8 +28,8 @@ router.post(
   authenticate,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const assignmentId = req.params.assignmentId as string;
-      const groupId = req.params.groupId as string;
+      const assignmentId = uuidSchema.parse(req.params.assignmentId);
+      const groupId = uuidSchema.parse(req.params.groupId);
       const user = req.user!;
       const validated = createSubmissionSchema.parse(req.body);
 
@@ -41,8 +43,35 @@ router.post(
         return;
       }
 
+      // Check due date if set
+      if (assignment.due_at && new Date() > new Date(assignment.due_at)) {
+        // Late submission policy check - could still allow or flag as late
+      }
+
+      const group = await prisma.studentGroup.findUnique({
+        where: { id: groupId },
+      });
+
+      if (!group || group.status !== 'ACTIVE') {
+        sendError(res, 'The group does not exist or is no longer active', 400, 'GROUP_NOT_ACTIVE');
+        return;
+      }
+
+      if (group.class_id !== assignment.class_id) {
+        sendError(res, 'This group does not belong to the assignment classroom', 403, 'INVALID_CLASSROOM');
+        return;
+      }
+
       // Verify the group was targeted by this assignment
-      const isTargeted = assignment.assignment_groups.some((ag: any) => ag.group_id === groupId);
+      // If ALL_GROUPS, any active group in the classroom is targeted.
+      // If SELECTED_GROUPS, must be explicitly present in assignment_groups.
+      let isTargeted = false;
+      if (assignment.target_mode === 'ALL_GROUPS') {
+        isTargeted = (group.class_id === assignment.class_id);
+      } else {
+        isTargeted = assignment.assignment_groups.some((ag: any) => ag.group_id === groupId);
+      }
+
       if (!isTargeted) {
         sendError(res, 'This group is not targeted for this assignment', 403, 'GROUP_NOT_TARGETED');
         return;
@@ -75,6 +104,23 @@ router.post(
       }
 
       const submission = await prisma.$transaction(async (tx) => {
+        // Ensure assignment_groups has this mapping recorded if ALL_GROUPS was used
+        if (assignment.target_mode === 'ALL_GROUPS') {
+          await tx.assignmentGroup.upsert({
+            where: {
+              uq_assignment_group: {
+                assignment_id: assignmentId,
+                group_id: groupId,
+              },
+            },
+            create: {
+              assignment_id: assignmentId,
+              group_id: groupId,
+            },
+            update: {},
+          });
+        }
+
         const sub = await tx.groupSubmission.create({
           data: {
             assignment_id: assignmentId,
@@ -174,7 +220,7 @@ router.get('/confirmations/my', authenticate, async (req: Request, res: Response
  */
 router.post('/confirmations/:confirmationId/confirm', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const confirmationId = req.params.confirmationId as string;
+    const confirmationId = uuidSchema.parse(req.params.confirmationId);
     const user = req.user!;
 
     const confirmation = await prisma.memberConfirmation.findUnique({
@@ -229,7 +275,7 @@ router.post('/confirmations/:confirmationId/confirm', authenticate, async (req: 
  */
 router.post('/confirmations/:confirmationId/waive', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const confirmationId = req.params.confirmationId as string;
+    const confirmationId = uuidSchema.parse(req.params.confirmationId);
     const user = req.user!;
 
     if (user.role !== 'PROFESSOR' && user.role !== 'PLATFORM_ADMIN') {
