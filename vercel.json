@@ -6,7 +6,7 @@
       "framework": "express",
       "entrypoint": "src/index.ts",
       "installCommand": "npm install",
-      "buildCommand": "npx prisma generate && tsc"
+      "buildCommand": "npm run build"
     },
     "frontend": {
       "root": "frontend",
