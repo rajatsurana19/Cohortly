@@ -1,6 +1,30 @@
 import { PrismaClient } from '@prisma/client';
 
+export function sanitizeDatabaseUrl(rawUrl?: string): string {
+  if (!rawUrl) return '';
+  let cleaned = rawUrl.trim();
+  // Remove wrapping quotes if present
+  if (
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  // Strip trailing semicolons or whitespace
+  cleaned = cleaned.replace(/;+\s*$/, '');
+  return cleaned;
+}
+
+const databaseUrl = sanitizeDatabaseUrl(process.env.DATABASE_URL);
+
 export const prisma = new PrismaClient({
+  datasources: databaseUrl
+    ? {
+        db: {
+          url: databaseUrl,
+        },
+      }
+    : undefined,
   log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
 });
 

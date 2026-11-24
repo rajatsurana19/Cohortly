@@ -5,6 +5,7 @@ export const authLimiter = rateLimit({
   max: 20, // 20 attempts per window
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     error: {
@@ -19,6 +20,7 @@ export const apiLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     error: {

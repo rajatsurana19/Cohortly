@@ -19,6 +19,9 @@ import notificationRoutes from './routes/notification.routes';
 
 const app = express();
 
+// Trust reverse proxy (Vercel) for accurate client IP and secure cookies
+app.set('trust proxy', 1);
+
 // Security middlewares
 app.use(helmet());
 app.use(
