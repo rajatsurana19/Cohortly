@@ -54,6 +54,10 @@ if (env.NODE_ENV !== 'test') {
 app.use('/api', apiLimiter);
 
 // Base Routes
+app.get('/', (_req, res) => {
+  res.json({ success: true, message: 'Cohortly API is operating normally' });
+});
+app.use('/health', healthRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', academicRoutes);
@@ -90,7 +94,8 @@ const startServer = async () => {
   });
 };
 
-if (process.env.NODE_ENV !== 'test') {
+// Start HTTP listener only when run directly (local / docker), not in Vercel serverless functions
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   startServer();
 }
 
