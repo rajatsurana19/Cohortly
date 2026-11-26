@@ -35,6 +35,18 @@ export interface ClassEnrollment {
   student?: { id: string; full_name: string; email: string };
 }
 
+export interface ClassAnalytics {
+  studentCount: number;
+  groupCount?: number;
+  totalAssignments?: number;
+  publishedAssignments?: number;
+  submittedCount?: number;
+  acknowledgedCount?: number;
+  totalPublished?: number;
+  completedCount?: number;
+  progressPercent?: number;
+}
+
 export interface ClassItem {
   id: string;
   course_id: string;
@@ -47,6 +59,7 @@ export interface ClassItem {
   academic_year: AcademicYear;
   professors: { professor: { id: string; full_name: string; email: string } }[];
   enrollments?: ClassEnrollment[];
+  analytics?: ClassAnalytics;
   _count?: {
     enrollments: number;
     groups: number;
@@ -118,6 +131,24 @@ export interface StudentGroup {
   };
 }
 
+export type SubmissionType = 'INDIVIDUAL' | 'GROUP';
+
+export interface IndividualSubmission {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  submission_reference?: string | null;
+  notes?: string | null;
+  submitted_at: string;
+  is_acknowledged: boolean;
+  acknowledged_at?: string | null;
+  student?: {
+    id: string;
+    full_name: string;
+    email: string;
+  };
+}
+
 export interface Assignment {
   id: string;
   class_id: string;
@@ -125,6 +156,8 @@ export interface Assignment {
   title: string;
   description?: string | null;
   instructions?: string | null;
+  submission_type: SubmissionType;
+  max_score?: number | null;
   target_mode: 'ALL_GROUPS' | 'SELECTED_GROUPS';
   status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
   due_at?: string | null;
@@ -144,8 +177,10 @@ export interface Assignment {
     };
   }[];
   submissions?: GroupSubmission[];
+  individual_submissions?: IndividualSubmission[];
   _count?: {
     submissions: number;
+    individual_submissions?: number;
   };
 }
 
@@ -177,11 +212,19 @@ export interface GroupSubmission {
   submitted_at: string;
   submission_reference?: string | null;
   notes?: string | null;
+  is_acknowledged?: boolean;
+  acknowledged_at?: string | null;
+  acknowledged_by?: string | null;
   submitter: {
     id: string;
     full_name: string;
     email: string;
   };
+  acknowledger?: {
+    id: string;
+    full_name: string;
+    email: string;
+  } | null;
   group?: StudentGroup;
   assignment?: Assignment;
   confirmations: MemberConfirmation[];

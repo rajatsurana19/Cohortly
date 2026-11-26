@@ -159,13 +159,54 @@ router.get('/classes', authenticate, async (req: Request, res: Response, next: N
               },
             },
           },
+          assignments: {
+            select: {
+              id: true,
+              status: true,
+              submission_type: true,
+              submissions: {
+                select: { id: true, is_acknowledged: true },
+              },
+              individual_submissions: {
+                select: { id: true, is_acknowledged: true },
+              },
+            },
+          },
           _count: {
-            select: { enrollments: true, groups: true, assignments: true },
+            select: { enrollments: { where: { status: 'ACTIVE' } }, groups: true, assignments: true },
           },
         },
         orderBy: { created_at: 'desc' },
       });
-      sendSuccess(res, { classes });
+
+      const enriched = classes.map((cls) => {
+        const published = cls.assignments.filter((a) => a.status === 'PUBLISHED' || a.status === 'CLOSED');
+        let submittedCount = 0;
+        let acknowledgedCount = 0;
+        for (const a of published) {
+          if (a.submission_type === 'INDIVIDUAL') {
+            submittedCount += a.individual_submissions.length;
+            acknowledgedCount += a.individual_submissions.filter((s) => s.is_acknowledged).length;
+          } else {
+            submittedCount += a.submissions.length;
+            acknowledgedCount += a.submissions.filter((s) => s.is_acknowledged).length;
+          }
+        }
+        const { assignments: _assignments, ...rest } = cls;
+        return {
+          ...rest,
+          analytics: {
+            studentCount: cls._count.enrollments,
+            groupCount: cls._count.groups,
+            totalAssignments: cls.assignments.length,
+            publishedAssignments: published.length,
+            submittedCount,
+            acknowledgedCount,
+          },
+        };
+      });
+
+      sendSuccess(res, { classes: enriched });
       return;
     }
 
@@ -187,8 +228,29 @@ router.get('/classes', authenticate, async (req: Request, res: Response, next: N
                 },
               },
             },
+            assignments: {
+              where: { status: { in: ['PUBLISHED', 'CLOSED'] } },
+              select: {
+                id: true,
+                submission_type: true,
+                submissions: {
+                  where: {
+                    group: {
+                      memberships: {
+                        some: { student_id: user.id, left_at: null },
+                      },
+                    },
+                  },
+                  select: { id: true, is_acknowledged: true },
+                },
+                individual_submissions: {
+                  where: { student_id: user.id },
+                  select: { id: true, is_acknowledged: true },
+                },
+              },
+            },
             _count: {
-              select: { enrollments: true, groups: true, assignments: true },
+              select: { enrollments: { where: { status: 'ACTIVE' } }, groups: true, assignments: true },
             },
           },
         },
@@ -196,7 +258,39 @@ router.get('/classes', authenticate, async (req: Request, res: Response, next: N
       orderBy: { enrolled_at: 'desc' },
     });
 
-    const classes = enrollments.map((e) => e.class);
+    const classes = enrollments.map((e) => {
+      const cls = e.class;
+      const totalPublished = cls.assignments.length;
+      let completedCount = 0;
+      let acknowledgedCount = 0;
+
+      for (const a of cls.assignments) {
+        if (a.submission_type === 'INDIVIDUAL') {
+          if (a.individual_submissions.length > 0) {
+            completedCount++;
+            if (a.individual_submissions[0].is_acknowledged) acknowledgedCount++;
+          }
+        } else {
+          if (a.submissions.length > 0) {
+            completedCount++;
+            if (a.submissions[0].is_acknowledged) acknowledgedCount++;
+          }
+        }
+      }
+
+      const { assignments: _assignments, ...rest } = cls;
+      return {
+        ...rest,
+        analytics: {
+          studentCount: cls._count.enrollments,
+          totalPublished,
+          completedCount,
+          acknowledgedCount,
+          progressPercent: totalPublished > 0 ? Math.round((completedCount / totalPublished) * 100) : 0,
+        },
+      };
+    });
+
     sendSuccess(res, { classes });
   } catch (error) {
     next(error);

@@ -14,6 +14,8 @@ const createAssignmentSchema = z.object({
   title: z.string().min(3, 'Assignment title must be at least 3 characters').max(200),
   description: z.string().max(2000).optional(),
   instructions: z.string().max(5000).optional(),
+  submissionType: z.enum(['INDIVIDUAL', 'GROUP']).default('GROUP'),
+  maxScore: z.number().int().min(1).max(1000).optional().default(100),
   targetMode: z.enum(['ALL_GROUPS', 'SELECTED_GROUPS']).default('ALL_GROUPS'),
   selectedGroupIds: z.array(z.string().uuid('Invalid group UUID format')).optional().default([]),
   dueAt: z.string().datetime().optional().nullable(),
@@ -23,6 +25,8 @@ const updateAssignmentSchema = z.object({
   title: z.string().min(3, 'Assignment title must be at least 3 characters').max(200).optional(),
   description: z.string().max(2000).optional(),
   instructions: z.string().max(5000).optional(),
+  submissionType: z.enum(['INDIVIDUAL', 'GROUP']).optional(),
+  maxScore: z.number().int().min(1).max(1000).optional(),
   targetMode: z.enum(['ALL_GROUPS', 'SELECTED_GROUPS']).optional(),
   selectedGroupIds: z.array(z.string().uuid('Invalid group UUID format')).optional(),
   dueAt: z.string().datetime().optional().nullable(),
@@ -59,8 +63,44 @@ router.get('/classes/:classId/assignments', authenticate, async (req: Request, r
             },
           },
         },
+        submissions: isProfOrAdmin
+          ? {
+              include: {
+                group: { select: { id: true, name: true } },
+                submitter: { select: { id: true, full_name: true, email: true } },
+                acknowledger: { select: { id: true, full_name: true, email: true } },
+                confirmations: true,
+              },
+            }
+          : {
+              where: {
+                group: {
+                  memberships: {
+                    some: { student_id: user.id, left_at: null },
+                  },
+                },
+              },
+              include: {
+                group: { select: { id: true, name: true } },
+                submitter: { select: { id: true, full_name: true, email: true } },
+                acknowledger: { select: { id: true, full_name: true, email: true } },
+                confirmations: true,
+              },
+            },
+        individual_submissions: isProfOrAdmin
+          ? {
+              include: {
+                student: { select: { id: true, full_name: true, email: true } },
+              },
+            }
+          : {
+              where: { student_id: user.id },
+              include: {
+                student: { select: { id: true, full_name: true, email: true } },
+              },
+            },
         _count: {
-          select: { submissions: true },
+          select: { submissions: true, individual_submissions: true },
         },
       },
       orderBy: { created_at: 'desc' },
@@ -95,7 +135,9 @@ router.post('/classes/:classId/assignments', authenticate, async (req: Request, 
         title: validated.title.trim(),
         description: validated.description?.trim() || null,
         instructions: validated.instructions?.trim() || null,
-        target_mode: validated.targetMode,
+        submission_type: validated.submissionType,
+        max_score: validated.maxScore,
+        target_mode: validated.submissionType === 'INDIVIDUAL' ? 'ALL_GROUPS' : validated.targetMode,
         status: 'DRAFT',
         due_at: validated.dueAt ? new Date(validated.dueAt) : null,
       },
@@ -160,7 +202,11 @@ router.get('/assignments/:assignmentId', authenticate, async (req: Request, res:
         },
         submissions: {
           include: {
+            group: { select: { id: true, name: true } },
             submitter: {
+              select: { id: true, full_name: true, email: true },
+            },
+            acknowledger: {
               select: { id: true, full_name: true, email: true },
             },
             confirmations: {
@@ -175,6 +221,13 @@ router.get('/assignments/:assignmentId', authenticate, async (req: Request, res:
             },
           },
         },
+        individual_submissions: {
+          include: {
+            student: {
+              select: { id: true, full_name: true, email: true },
+            },
+          },
+        },
       },
     });
 
@@ -184,6 +237,148 @@ router.get('/assignments/:assignmentId', authenticate, async (req: Request, res:
     }
 
     sendSuccess(res, { assignment });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/assignments/:assignmentId/submissions
+ * Monitor & filter submissions for an assignment (Professor / Admin)
+ */
+router.get('/assignments/:assignmentId/submissions', authenticate, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const assignmentId = uuidSchema.parse(req.params.assignmentId);
+    const user = req.user!;
+    const statusFilter = (req.query.status as string | undefined)?.toUpperCase();
+
+    if (user.role !== 'PROFESSOR' && user.role !== 'PLATFORM_ADMIN') {
+      sendError(res, 'Only professors can view all submissions', 403, 'FORBIDDEN');
+      return;
+    }
+
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        class: {
+          include: {
+            enrollments: {
+              where: { status: 'ACTIVE' },
+              include: {
+                student: { select: { id: true, full_name: true, email: true } },
+              },
+            },
+            groups: {
+              where: { status: 'ACTIVE' },
+              include: {
+                memberships: {
+                  where: { left_at: null },
+                  include: {
+                    student: { select: { id: true, full_name: true, email: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        assignment_groups: true,
+        submissions: {
+          include: {
+            group: { select: { id: true, name: true } },
+            submitter: { select: { id: true, full_name: true, email: true } },
+            acknowledger: { select: { id: true, full_name: true, email: true } },
+            confirmations: {
+              include: {
+                student: { select: { id: true, full_name: true, email: true } },
+              },
+            },
+          },
+        },
+        individual_submissions: {
+          include: {
+            student: { select: { id: true, full_name: true, email: true } },
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      sendError(res, 'Assignment not found', 404, 'NOT_FOUND');
+      return;
+    }
+
+    const isPastDue = assignment.due_at ? new Date() > new Date(assignment.due_at) : false;
+
+    if (assignment.submission_type === 'INDIVIDUAL') {
+      const subMap = new Map(assignment.individual_submissions.map((s) => [s.student_id, s]));
+      let items = assignment.class.enrollments.map((enr) => {
+        const sub = subMap.get(enr.student_id);
+        const computedStatus = sub
+          ? sub.is_acknowledged
+            ? 'ACKNOWLEDGED'
+            : 'SUBMITTED'
+          : isPastDue
+          ? 'OVERDUE'
+          : 'PENDING';
+        return {
+          type: 'INDIVIDUAL' as const,
+          student: enr.student,
+          status: computedStatus,
+          submission: sub || null,
+        };
+      });
+
+      if (statusFilter && ['PENDING', 'SUBMITTED', 'ACKNOWLEDGED', 'OVERDUE'].includes(statusFilter)) {
+        items = items.filter((item) => item.status === statusFilter);
+      }
+
+      sendSuccess(res, {
+        assignmentId: assignment.id,
+        submissionType: assignment.submission_type,
+        items,
+      });
+      return;
+    }
+
+    // GROUP submission monitoring
+    const targetGroupIds =
+      assignment.target_mode === 'ALL_GROUPS'
+        ? assignment.class.groups.map((g) => g.id)
+        : assignment.assignment_groups.map((ag) => ag.group_id);
+
+    const subMap = new Map(assignment.submissions.map((s) => [s.group_id, s]));
+    let items = assignment.class.groups
+      .filter((g) => targetGroupIds.includes(g.id))
+      .map((g) => {
+        const sub = subMap.get(g.id);
+        const computedStatus = sub
+          ? sub.is_acknowledged
+            ? 'ACKNOWLEDGED'
+            : 'SUBMITTED'
+          : isPastDue
+          ? 'OVERDUE'
+          : 'PENDING';
+        return {
+          type: 'GROUP' as const,
+          group: {
+            id: g.id,
+            name: g.name,
+            memberships: g.memberships,
+          },
+          status: computedStatus,
+          submission: sub || null,
+        };
+      });
+
+    if (statusFilter && ['PENDING', 'SUBMITTED', 'ACKNOWLEDGED', 'OVERDUE'].includes(statusFilter)) {
+      items = items.filter((item) => item.status === statusFilter);
+    }
+
+    sendSuccess(res, {
+      assignmentId: assignment.id,
+      submissionType: assignment.submission_type,
+      items,
+    });
   } catch (error) {
     next(error);
   }
@@ -219,6 +414,8 @@ router.patch('/assignments/:assignmentId', authenticate, async (req: Request, re
         title: validated.title?.trim(),
         description: validated.description?.trim(),
         instructions: validated.instructions?.trim(),
+        submission_type: validated.submissionType,
+        max_score: validated.maxScore,
         target_mode: validated.targetMode,
         due_at: validated.dueAt !== undefined ? (validated.dueAt ? new Date(validated.dueAt) : null) : undefined,
       },

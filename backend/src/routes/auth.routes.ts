@@ -11,6 +11,17 @@ import { recordAuditLog } from '../services/auditService';
 
 const router = Router();
 
+function getRedirectPath(role: string): string {
+  switch (role) {
+    case 'PROFESSOR':
+      return '/professor';
+    case 'PLATFORM_ADMIN':
+      return '/admin';
+    default:
+      return '/student';
+  }
+}
+
 // Validation Schemas
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters').max(150),
@@ -112,6 +123,7 @@ router.post('/register', authLimiter, async (req: Request, res: Response, next: 
         user,
         accessToken,
         refreshToken,
+        redirectTo: getRedirectPath(user.role),
       },
       'Registration successful',
       201
@@ -205,6 +217,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response, next: Nex
         },
         accessToken,
         refreshToken,
+        redirectTo: getRedirectPath(user.role),
       },
       'Login successful'
     );
