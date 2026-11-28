@@ -421,10 +421,18 @@ router.get('/classes/:classId', authenticate, async (req: Request, res: Response
 router.post('/classes/join', authenticate, authorizeRoles('STUDENT'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const validated = joinClassSchema.parse(req.body);
-    const code = validated.joinCode.trim().toUpperCase();
+    const code = validated.joinCode
+      .replace(/^(join\s*code|code)\s*:\s*/i, '')
+      .trim()
+      .toUpperCase();
 
-    const targetClass = await prisma.class.findUnique({
-      where: { join_code: code },
+    const targetClass = await prisma.class.findFirst({
+      where: {
+        join_code: {
+          equals: code,
+          mode: 'insensitive',
+        },
+      },
     });
 
     if (!targetClass || targetClass.status !== 'ACTIVE') {
