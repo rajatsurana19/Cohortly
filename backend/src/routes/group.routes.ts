@@ -89,7 +89,20 @@ router.get('/classes/:classId/groups', authenticate, async (req: Request, res: R
 
     const activeMembership = await prisma.groupMembership.findFirst({
       where: { class_id: classId, student_id: user.id, left_at: null },
-      include: { group: true },
+      include: {
+        group: {
+          include: {
+            memberships: {
+              where: { left_at: null },
+              include: {
+                student: {
+                  select: { id: true, full_name: true, email: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     sendSuccess(res, {

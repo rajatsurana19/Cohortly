@@ -98,11 +98,11 @@ export const CourseAssignmentsPage: React.FC<CourseAssignmentsPageProps> = ({
     fetchClassDetails();
   }, [classItem.id]);
 
-  const myLeaderMembership = currentActiveGroup?.memberships.find(
+  const myLeaderMembership = currentActiveGroup?.memberships?.find(
     (m) => m.student_id === user?.id && m.membership_role === 'LEADER'
   );
   const isGroupLeader = Boolean(myLeaderMembership);
-  const groupLeader = currentActiveGroup?.memberships.find((m) => m.membership_role === 'LEADER');
+  const groupLeader = currentActiveGroup?.memberships?.find((m) => m.membership_role === 'LEADER');
 
   const handleOpenSubmit = (assignment: Assignment) => {
     setSubmittingAssignment(assignment);
@@ -638,7 +638,7 @@ export const CourseAssignmentsPage: React.FC<CourseAssignmentsPageProps> = ({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {currentActiveGroup.memberships.map((m) => (
+                    {(currentActiveGroup.memberships || []).map((m) => (
                       <div
                         key={m.id}
                         className="p-3.5 rounded-xl border border-border bg-gray-50/70 flex items-center justify-between"
@@ -693,7 +693,7 @@ export const CourseAssignmentsPage: React.FC<CourseAssignmentsPageProps> = ({
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-semibold text-sm text-text-primary">{g.name}</span>
                           <span className="text-[11px] font-medium text-text-secondary">
-                            {g.memberships.length}/{g.max_members} members
+                            {g.memberships?.length || 0}/{g.max_members} members
                           </span>
                         </div>
                         <p className="text-xs text-text-secondary line-clamp-2">
