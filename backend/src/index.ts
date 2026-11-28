@@ -21,6 +21,8 @@ const app = express();
 
 // Trust reverse proxy (Vercel) for accurate client IP and secure cookies
 app.set('trust proxy', 1);
+// Disable ETag so API responses are never served from stale 304 browser cache
+app.set('etag', false);
 
 // Security middlewares
 app.use(helmet());
@@ -53,7 +55,13 @@ if (env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Global rate limiter for API routes
+// Global rate limiter & no-cache headers for API routes
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 app.use('/api', apiLimiter);
 
 // Base Routes
